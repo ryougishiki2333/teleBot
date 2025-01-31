@@ -62,10 +62,10 @@ bot.on("message", async (msg) => {
   try {
     await bot.sendMessage(
       "@viviandmeow",
-      "'" + (msg.text || "why bot cant work?") + "'" + " by vivi_bot"
+      '"' + (msg.text || "why bot cant work?") + '"' + " by vivi_bot"
     );
     await twitterClient.v2.tweet(
-      "'" + (msg.text || "why bot cant work?") + "'" + " by vivi_bot"
+      '"' + (msg.text || "why bot cant work?") + '"' + " by vivi_bot"
     );
   } catch (error) {
     console.error("Error sending message:", error);
