@@ -58,16 +58,64 @@ bot
   });
 
 bot.on("message", async (msg) => {
-  console.log(msg.text);
+  console.log("收到消息:", msg);
   try {
-    await bot.sendMessage(
-      "@viviandmeow",
-      '"' + (msg.text || "why bot cant work?") + '"' + " by vivi_bot"
-    );
-    await twitterClient.v2.tweet(
-      '"' + (msg.text || "why bot cant work?") + '"' + " by vivi_bot"
-    );
+    // 处理带有图片和文字说明的消息
+    if (msg.photo && msg.caption) {
+      const photo = msg.photo[msg.photo.length - 1]; // 获取最高质量的图片
+      await bot.sendPhoto("@viviandmeow", photo.file_id, {
+        caption: '"' + msg.caption + '"' + " by vivi_bot",
+      });
+    }
+    // 处理纯文本消息
+    else if (msg.text) {
+      await bot.sendMessage(
+        "@viviandmeow",
+        '"' + msg.text + '"' + " by vivi_bot"
+      );
+    }
   } catch (error) {
     console.error("Error sending message:", error);
+  }
+  // Twitter发送逻辑
+  try {
+    if (msg.photo) {
+      // 获取图片文件
+      const photo = msg.photo[msg.photo.length - 1];
+      const file = await bot.getFile(photo.file_id);
+
+      // 修改 fetch 请求，添加代理支持
+      const fetch = await import("node-fetch");
+      const response = await fetch.default(
+        `https://api.telegram.org/file/bot${config.token}/${file.file_path}`,
+        {
+          agent: httpAgent, // 添加代理设置
+        }
+      );
+      const buffer = await response.buffer();
+
+      // 上传图片到 Twitter
+      const mediaId = await twitterClient.v1.uploadMedia(buffer, {
+        mimeType: "image/jpeg",
+      });
+
+      // 如果有文字说明，发送图片+文字，否则只发送图片
+      if (msg.caption) {
+        await twitterClient.v2.tweet({
+          text: '"' + msg.caption + '"' + " by vivi_bot",
+          media: { media_ids: [mediaId] },
+        });
+      } else {
+        await twitterClient.v2.tweet({
+          media: { media_ids: [mediaId] },
+        });
+      }
+    }
+    // 处理纯文本消息
+    else if (msg.text) {
+      await twitterClient.v2.tweet('"' + msg.text + '"' + " by vivi_bot");
+    }
+  } catch (error) {
+    console.error("Error sending Twitter message:", error);
   }
 });
